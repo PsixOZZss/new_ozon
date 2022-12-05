@@ -1,48 +1,72 @@
+import logging
+
 import os
 import shutil
+
 import random
-import logging
+
+import time
 
 from BAN import BAN_WORD, BAN_CHEMIST, BAN_SEED, BAN_VAPE, BAN_OTHER
 
+# импорты для настройки драйвера
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.common import NoSuchElementException
 from selenium.webdriver.chrome.options import Options
 
+# для поиска элементов и взаимодействия с ними
+from selenium.webdriver.common.by import By
+from selenium.common import NoSuchElementException
+
+# для ожидания загрузки страницы или элементов
 from selenium.webdriver.support import expected_conditions as condition
 from selenium.webdriver.support.wait import WebDriverWait
 
-REASONS = {'taboo': '',
+# скорость чтения и проверки
+# брал как 240 слов в минуту + столько же на проверку
+SPEED = 0.5
+
+# причины для отклонения
+REASONS = {'taboo': "//*[contains(text(), 'Товар запрещен')]",
            }
 
-PAGES = {'now': '',
-         'attributes': '',
+# вкладки
+PAGES = {'now': 'now',
+         'attributes': "//*[type='button' and [contains(text(), 'Атрибуты')]]",
+         'media': "//*[type='button' and [contains(text(), 'Медиа')]]",
          }
 
-POSITIONS = {'now': '',
-             'categories': '',
-             'commercial': '',
+# позиция аттрибутов
+POSITIONS = {'now': "contains(@class, 'focused')]",
+             'commercial': "//*[contains(text(), 'Коммерческий тип')]",
              }
 
-WAIT_ARG = {'attributes': '',
-            'box': '',
-            'page': '',
+# аргументы для ожидания
+WAIT_ARG = {'attributes': "//*[contains(@class, 'attribute')]",
+            'box': "//*[contains(@class, 'mark')]",
+            'page': "//*[contains(text(), 'Снять текущие задания')]",
             'none': 'none',
             }
 
-OTHER_PATH = {'final': "//*[text()[contains(.,'Завершить проверку')] and contains(@class, 'button')]",
-              'accept': "",
-              'decline': "",
-              'accept_final': "",
+# без комментариев
+OTHER_PATH = {'accept': "//*[contains(@class, 'button') and contains(@class, 'green')]",
+              'decline': "//*[contains(@class, 'button') and contains(@class, 'red')]",
+              'accept_final': "//*[text()[contains(.,'Завершить проверку')] and contains(@class, 'button')]",
+              'accept_box': "//*[text()[contains(.,'Подтвердить')] and contains(@class, 'button')]",
               'images': "",
-              'stock': "//*[contains(text(), 'не найден')]"
+              'stock': "//*[contains(text(), 'Ничего не выбрано')]",
+              'key': "//*[contains(@class, 'focused')]/div/div[contains(@class,'label')]",
+              'value': "//*[contains(@class, 'focused')]/div/div[contains(@class,'value')]/span",
+              'descriptions': "",
+              'categories': "//*[contains(text(), 'Группа товара')]/..",
               }
 
+# настройка логов
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+debug = logger.debug
 
+# настройка драйвера
 chrome_options = Options()
 chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
 chrome_driver = "./chrome/chromedriver.exe"
@@ -50,25 +74,35 @@ driver = webdriver.Chrome(chrome_driver, chrome_options=chrome_options)
 
 
 def get_categories():
-    categories = 'no_categories'
-    try:
-        categories = driver.find_element(By.XPATH, POSITIONS['categories']).text
-    except NoSuchElementException:
-        pass
+    categories = getter(OTHER_PATH['categories']).split('\n')[1]
+    debug('categories: '+categories)
     return categories
 
 
 def get_info():
-    key = value = images = descriptions = 'no_value'
-    return key.lower(), value, images, descriptions
+    key = getter(OTHER_PATH['key'])
+    value = getter(OTHER_PATH['value'])
+    # descriptions = getter(OTHER_PATH['descriptions'])
+    descriptions = 'no_value'
+    return key, value, descriptions
+
+
+def getter(path):
+    try:
+        element = driver.find_element(By.XPATH, path).text.lower()
+    except NoSuchElementException:
+        element = 'no_value'
+    return element
 
 
 def set_box(page, position, reason, *wait_args):
-    click(page, wait_args[0])
+    if page != 'now':
+        click(page, wait_args[0])
     click(position, wait_args[1])
+    decline()
     if not is_box_accept(reason):
         click(reason, WAIT_ARG['none'])
-    accept()
+    click(OTHER_PATH, WAIT_ARG['none'])
 
 
 def is_box_accept(path):
@@ -95,6 +129,7 @@ def check_value(value, categories):
 
 
 def check_images():
+    time.sleep(3)
     accept()
     # clear_img()
 
@@ -114,15 +149,15 @@ def play_video():
         try:
             pass
         except Exception as e:
-            logger.debug('video exception')
-            logger.debug(str(e))
+            debug('video exception')
+            debug(str(e))
         else:
             break
 
 
 def is_final():
     try:
-        driver.find_element(By.XPATH, OTHER_PATH['final'])
+        driver.find_element(By.XPATH, OTHER_PATH['accept_final'])
     except NoSuchElementException:
         return False
     else:
@@ -153,18 +188,21 @@ def is_in_stock():
 def refresh():
     driver.refresh()
     wait_for(WAIT_ARG['page'])
+    time.sleep(3)
 
 
 def wait_for(argument):
-    timeout = 20
-    WebDriverWait(driver, timeout).until(condition.presence_of_element_located((By.XPATH, argument)))
+    if argument != 'none':
+        timeout = 20
+        WebDriverWait(driver, timeout).until(condition.presence_of_element_located((By.XPATH, argument)))
+    else:
+        time.sleep(0.5)
 
 
 def click(path, wait_arg):
     element = driver.find_element(By.XPATH, path)
     driver.execute_script("arguments[0].click();", element)
-    if wait_arg != 'none':
-        wait_for(wait_arg)
+    wait_for(wait_arg)
 
 
 def main():
@@ -174,18 +212,20 @@ def main():
         if is_in_stock():
             categories = get_categories()
             while not is_final():
-                key, value, images, descriptions = get_info()
-                if 'видео' in key:
+                key, value, descriptions = get_info()
+                if 'Видео' in key:
                     play_video()
-                elif '' in key:
+                elif 'Изображ' in key:
                     download_images()
                     check_images()
                 else:
+                    words_count = len(value.split())
+                    time.sleep(SPEED * words_count)
                     if check_value(value, categories):
                         accept()
                     else:
-                        decline()
-                        set_box(PAGES['attributes'], POSITIONS['commercial'], REASONS['taboo'],
+                        accept()
+                        set_box(PAGES['now'], POSITIONS['commercial'], REASONS['taboo'],
                                 WAIT_ARG['attributes'],
                                 WAIT_ARG['box'])
             accept_final()
