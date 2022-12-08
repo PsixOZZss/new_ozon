@@ -20,10 +20,10 @@ from selenium.common import NoSuchElementException
 # для ожидания загрузки страницы или элементов
 from selenium.webdriver.support import expected_conditions as condition
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.common.exceptions import TimeoutException
 
 # скорость чтения и проверки
-# брал как 240 слов в минуту + столько же на проверку
-SPEED = 0.5
+SPEED = 0.1
 
 # причины для отклонения
 REASONS = {'taboo': "//*[contains(text(), 'Товар запрещен')]",
@@ -53,10 +53,12 @@ OTHER_PATH = {'accept': "//*[contains(@class, 'button') and contains(@class, 'gr
               'accept_final': "//*[text()[contains(.,'Завершить проверку')] and contains(@class, 'button')]",
               'accept_box': "//*[text()[contains(.,'Подтвердить')] and contains(@class, 'button')]",
               'images': "",
+              'video': "//video",
               'stock': "//*[contains(text(), 'Ничего не выбрано')]",
               'key': "//*[contains(@class, 'focused')]/div/div[contains(@class,'label')]",
               'value': "//*[contains(@class, 'focused')]/div/div[contains(@class,'value')]/span",
-              'descriptions': "",
+              'descriptions': "//*[contains(@class, 'focused')]/../../div/div/div/"
+                              "div[text()[contains(.,'Предыдущий модератор отклонил атрибут')]]/../div/span",
               'categories': "//*[contains(text(), 'Группа товара')]/..",
               }
 
@@ -75,15 +77,15 @@ driver = webdriver.Chrome(chrome_driver, chrome_options=chrome_options)
 
 def get_categories():
     categories = getter(OTHER_PATH['categories']).split('\n')[1]
-    debug('categories: '+categories)
+    debug('categories: ' + categories)
     return categories
 
 
 def get_info():
     key = getter(OTHER_PATH['key'])
     value = getter(OTHER_PATH['value'])
-    # descriptions = getter(OTHER_PATH['descriptions'])
-    descriptions = 'no_value'
+    descriptions = getter(OTHER_PATH['descriptions'])
+    print(descriptions)
     return key, value, descriptions
 
 
@@ -147,12 +149,17 @@ def clear_img():
 def play_video():
     while True:
         try:
-            pass
-        except Exception as e:
+            element = driver.find_element(By.XPATH, OTHER_PATH['video'])
+            duration = driver.execute_script('return arguments[0].duration', element)
+            print(duration)
+            driver.execute_script('arguments[0].play()', element)
+            time.sleep(duration)
+        except NoSuchElementException as e:
             debug('video exception')
             debug(str(e))
         else:
             break
+    accept()
 
 
 def is_final():
@@ -194,7 +201,10 @@ def refresh():
 def wait_for(argument):
     if argument != 'none':
         timeout = 20
-        WebDriverWait(driver, timeout).until(condition.presence_of_element_located((By.XPATH, argument)))
+        try:
+            WebDriverWait(driver, timeout).until(condition.presence_of_element_located((By.XPATH, argument)))
+        except TimeoutException:
+            refresh()
     else:
         time.sleep(0.5)
 
@@ -213,14 +223,14 @@ def main():
             categories = get_categories()
             while not is_final():
                 key, value, descriptions = get_info()
-                if 'Видео' in key:
+                if 'видео' in key:
                     play_video()
-                elif 'Изображ' in key:
+                elif 'изображ' in key:
                     download_images()
                     check_images()
                 else:
                     words_count = len(value.split())
-                    time.sleep(SPEED * words_count)
+                    time.sleep(SPEED * words_count + 0.7)
                     if check_value(value, categories):
                         accept()
                     else:
