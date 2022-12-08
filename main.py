@@ -77,7 +77,6 @@ driver = webdriver.Chrome(chrome_driver, chrome_options=chrome_options)
 
 def get_categories():
     categories = getter(OTHER_PATH['categories']).split('\n')[1]
-    debug('categories: ' + categories)
     return categories
 
 
@@ -85,7 +84,6 @@ def get_info():
     key = getter(OTHER_PATH['key'])
     value = getter(OTHER_PATH['value'])
     descriptions = getter(OTHER_PATH['descriptions'])
-    print(descriptions)
     return key, value, descriptions
 
 
@@ -151,7 +149,6 @@ def play_video():
         try:
             element = driver.find_element(By.XPATH, OTHER_PATH['video'])
             duration = driver.execute_script('return arguments[0].duration', element)
-            print(duration)
             driver.execute_script('arguments[0].play()', element)
             time.sleep(duration)
         except NoSuchElementException as e:
