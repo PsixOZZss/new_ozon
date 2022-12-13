@@ -53,13 +53,15 @@ OTHER_PATH = {'accept': "//*[contains(@class, 'button') and contains(@class, 'gr
               'accept_final': "//*[text()[contains(.,'Завершить проверку')] and contains(@class, 'button')]",
               'accept_box': "//*[text()[contains(.,'Подтвердить')] and contains(@class, 'button')]",
               'images': "",
-              'video': "//video",
+              'video': "//video[@playsinline]",
               'stock': "//*[contains(text(), 'Ничего не выбрано')]",
+              'liquid': "//*[contains(text(), 'Error)]",
               'key': "//*[contains(@class, 'focused')]/div/div[contains(@class,'label')]",
               'value': "//*[contains(@class, 'focused')]/div/div[contains(@class,'value')]/span",
               'descriptions': "//*[contains(@class, 'focused')]/../../div/div/div/"
                               "div[text()[contains(.,'Предыдущий модератор отклонил атрибут')]]/../div/span",
               'categories': "//*[contains(text(), 'Группа товара')]/..",
+              'bot_test': "//*[text()[contains(.,'Checking if the site connection is secure')]]"
               }
 
 # настройка логов
@@ -67,12 +69,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 debug = logger.debug
-
-# настройка драйвера
-chrome_options = Options()
-chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
-chrome_driver = "./chrome/chromedriver.exe"
-driver = webdriver.Chrome(chrome_driver, chrome_options=chrome_options)
 
 
 def get_categories():
@@ -145,18 +141,17 @@ def clear_img():
 
 
 def play_video():
-    while True:
-        try:
-            element = driver.find_element(By.XPATH, OTHER_PATH['video'])
-            duration = driver.execute_script('return arguments[0].duration', element)
-            driver.execute_script('arguments[0].play()', element)
-            time.sleep(duration)
-        except NoSuchElementException as e:
-            debug('video exception')
-            debug(str(e))
-        else:
-            break
-    accept()
+    try:
+        time.sleep(2)
+        element = driver.find_element(By.XPATH, OTHER_PATH['video'])
+        driver.execute_script('arguments[0].play()', element)
+        time.sleep(2)
+        duration = driver.execute_script('return arguments[0].duration', element)
+        time.sleep(duration)
+        accept()
+    except NoSuchElementException as e:
+        debug('video exception')
+        debug(str(e))
 
 
 def is_final():
@@ -189,10 +184,28 @@ def is_in_stock():
         return False
 
 
+def is_liquid():
+    try:
+        driver.find_element(By.XPATH, OTHER_PATH['liquid'])
+    except NoSuchElementException:
+        return True
+    else:
+        return False
+
+
+def is_bot_check():
+    try:
+        driver.find_element(By.XPATH, OTHER_PATH['bot_test'])
+    except NoSuchElementException:
+        return False
+    else:
+        return True
+
+
 def refresh():
     driver.refresh()
     wait_for(WAIT_ARG['page'])
-    time.sleep(3)
+    time.sleep(random.random() * 2 + 2)
 
 
 def wait_for(argument):
@@ -216,7 +229,9 @@ def main():
     count = 0
     rand_count = int(random.random() * 200) + 1400
     while count < rand_count:
-        if is_in_stock():
+        if is_bot_check():
+            print(100 / 0)
+        elif is_in_stock():
             categories = get_categories()
             while not is_final():
                 key, value, descriptions = get_info()
@@ -227,7 +242,7 @@ def main():
                     check_images()
                 else:
                     words_count = len(value.split())
-                    time.sleep(SPEED * words_count + 0.7)
+                    time.sleep(SPEED * words_count + 0.7 + random.random() * 5)
                     if check_value(value, categories):
                         accept()
                     else:
@@ -241,5 +256,40 @@ def main():
             refresh()
 
 
+def open_browser():
+    os.chdir('./')
+    os.system('start browser.bat')
+    time.sleep(5)
+    setup_browser()
+
+
+def setup_browser():
+    global driver
+    chrome_options = Options()
+    chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
+    chrome_driver = "./chrome/chromedriver.exe"
+    driver = webdriver.Chrome(chrome_driver, chrome_options=chrome_options)
+
+
+def close_browser():
+    while True:
+        try:
+            setup_browser()
+            driver.close()
+            driver.quit()
+        except Exception:
+            break
+
+
+def starting_bot():
+    try:
+        open_browser()
+        main()
+    except Exception as e:
+        driver.get_screenshot_as_file('./screens/test.png')
+        close_browser()
+        return str(e)
+
 if __name__ == '__main__':
+    open_browser()
     main()
