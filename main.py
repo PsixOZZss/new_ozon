@@ -77,7 +77,7 @@ class OzonManager(object):
                     key, value, descriptions = self.get_info()
                     if 'видео' in key:
                         self.status = 'video'
-                        self.play_video()
+                        await self.play_video()
                     elif 'изображ' in key:
                         self.status = 'image'
                         self.download_images()
@@ -160,16 +160,16 @@ class OzonManager(object):
         shutil.rmtree('./images/download')
         os.makedirs('./images/download')
 
-    def play_video(self):
+    async def play_video(self):
         while True:
             try:
                 # Bot.send_msg(self.message, 'Видео')
-                time.sleep(2)
+                await asyncio.sleep.sleep(2)
                 element = self.driver.find_element(By.XPATH, OTHER_PATH['video'])
                 self.driver.execute_script('arguments[0].play()', element)
-                time.sleep(2)
+                await asyncio.sleep.sleep(2)
                 duration = self.driver.execute_script('return arguments[0].duration', element)
-                time.sleep(duration)
+                await asyncio.sleep(duration+1)
                 self.accept()
             except Exception as e:
                 self.debug('video exception')

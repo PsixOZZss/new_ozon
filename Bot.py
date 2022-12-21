@@ -6,8 +6,8 @@ from aiogram import Bot, Dispatcher, executor, types
 from main import OzonManager
 
 # поменять на свой токен
-TOKEN = '1720133943:AAHJi1QDV-Bv0lFHXyZILvhGKl7jPEfEN00'
-ID = 1218938938
+TOKEN = '5959594800:AAGVorUcaBmOlO3oIFeR0xUentOkzaINeKU'
+ID = 1148865286
 
 # Initialize bot and dispatcher
 bot = Bot(token=TOKEN)
@@ -60,21 +60,21 @@ async def start_cmd_handler(message: types.Message):
     await message.answer('Клик')
 
 
-async def check():
-    while True:
-        status = manager.get_status()
-        if status == 'video':
-            await bot.send_message(ID, 'Видео')
-            await asyncio.sleep(20)
-        else:
-            await asyncio.sleep(1)
+# async def check():
+#     while True:
+#         status = manager.get_status()
+#         if status == 'video':
+#             await bot.send_message(ID, 'Видео')
+#             await asyncio.sleep(20)
+#         else:
+#             await asyncio.sleep(1)
 
 
-def between_callback():
-    asyncio.run(check())
+# def between_callback():
+#     asyncio.run(check())
 
 
 if __name__ == '__main__':
-    th = Thread(target=between_callback)
-    th.start()
+    # th = Thread(target=between_callback)
+    # th.start()
     executor.start_polling(dp, skip_updates=True)
