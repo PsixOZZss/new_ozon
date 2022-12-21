@@ -1,4 +1,3 @@
-import time
 import asyncio
 from threading import Thread
 
@@ -8,22 +7,17 @@ from main import OzonManager
 
 # поменять на свой токен
 TOKEN = '1720133943:AAHJi1QDV-Bv0lFHXyZILvhGKl7jPEfEN00'
+ID = 1218938938
 
 # Initialize bot and dispatcher
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
 manager = OzonManager()
-is_running = False
 
 
 @dp.message_handler(commands='open')
 async def start_cmd_handler(message: types.Message):
-    global is_running
-    if not is_running:
-        th = Thread(target=between_callback, args=(message,))
-        th.start()
-        is_running = True
     await message.answer('Поехали')
     err = await manager.start(message, True)
     await message.answer(err)
@@ -36,11 +30,6 @@ async def start_cmd_handler(message: types.Message):
 
 @dp.message_handler(commands='run')
 async def start_cmd_handler(message: types.Message):
-    global is_running
-    if not is_running:
-        th = Thread(target=between_callback, args=(message,))
-        th.start()
-        is_running = True
     await message.answer('Поехали')
     err = await manager.start(message, False)
     await message.answer(err)
@@ -71,22 +60,21 @@ async def start_cmd_handler(message: types.Message):
     await message.answer('Клик')
 
 
-async def check(message):
+async def check():
     while True:
         status = manager.get_status()
         if status == 'video':
-            await message.answer('видео')
+            await bot.send_message(ID, 'Видео')
             await asyncio.sleep(20)
         else:
             await asyncio.sleep(1)
 
 
-def between_callback(message):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(check(message))
-    loop.close()
+def between_callback():
+    asyncio.run(check())
 
 
 if __name__ == '__main__':
+    th = Thread(target=between_callback)
+    th.start()
     executor.start_polling(dp, skip_updates=True)
