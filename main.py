@@ -8,6 +8,8 @@ import random
 
 import time
 
+from selenium.webdriver import ActionChains
+
 from BAN import BAN_WORD, BAN_CHEMIST, BAN_SEED, BAN_VAPE, BAN_OTHER
 from PATH import REASONS, PAGES, POSITIONS, WAIT_ARG, OTHER_PATH
 
@@ -174,6 +176,12 @@ class OzonManager(object):
                 self.debug(str(e))
             else:
                 break
+
+    def video_click(self):
+        actions = ActionChains(self.driver)
+        actions.move_by_offset(100, 100).perform()
+        time.sleep(5)
+        actions.click().perform()
 
     def is_final(self):
         try:
