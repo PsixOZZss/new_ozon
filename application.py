@@ -6,6 +6,7 @@ import sys
 import os
 import threading
 from Bot import app_
+# from colorama import Fore, Red
 
 
 
@@ -16,9 +17,14 @@ class Window(QMainWindow):
         self.setWindowTitle('Cum')
         self.setGeometry(300, 250, 350, 200)
 
+            
         self.textbox = QLineEdit(self)
         self.textbox.move(20, 20)
         self.textbox.resize(280, 40)
+        with open('token.config', 'r', encoding='utf-8') as config:
+            token = config.read()
+            if ':' in token:
+                self.textbox.setText(token)
 
         self.btn_start = QtWidgets.QPushButton(self)
         self.btn_start.move(70, 120)
@@ -29,6 +35,8 @@ class Window(QMainWindow):
     # @staticmethod
     def start_script(self):
         token = self.textbox.text()
+        with open('token.config', 'w', encoding='utf-8') as config:
+            config.write(token)
         app_(token)
 
     @staticmethod
