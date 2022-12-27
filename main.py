@@ -56,10 +56,8 @@ class OzonManager(object):
         chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
         chrome_driver = "./chrome/chromedriver.exe"
         self.driver = webdriver.Chrome(chrome_driver, chrome_options=chrome_options)
-        try:
-            await self.main()
-        except Exception as e:
-            return str(e)
+
+        return await self.main()
 
     def screen(self):
         self.driver.get_screenshot_as_file('./screens/test.png')
@@ -67,36 +65,39 @@ class OzonManager(object):
     async def main(self):
         count = 0
         rand_count = int(random.random() * 200) + 1400
-        while count < rand_count:
-            if self.is_bot_check():
-                print(100 / 0)
-            elif self.is_in_stock():
-                categories = self.get_categories()
-                while not self.is_final():
-                    await asyncio.sleep(0.1)
-                    key, value, descriptions = self.get_info()
-                    if 'видео' in key:
-                        self.status = 'video'
-                        await self.play_video()
-                    elif 'изображ' in key:
-                        self.status = 'image'
-                        self.download_images()
-                        self.check_images()
-                    else:
-                        self.status = 'text'
-                        words_count = len(value.split())
-                        await asyncio.sleep(self.SPEED * words_count + 0.7 + random.random() * 5)
-                        if self.check_value(value, categories):
-                            self.accept()
+        try:
+            while count < rand_count:
+                if self.is_bot_check():
+                    print(100 / 0)
+                elif self.is_in_stock():
+                    categories = self.get_categories()
+                    while not self.is_final():
+                        await asyncio.sleep(0.1)
+                        key, value, descriptions = self.get_info()
+                        if 'видео' in key:
+                            self.status = 'video'
+                            await self.play_video()
+                        elif 'изображ' in key:
+                            self.status = 'image'
+                            self.download_images()
+                            await self.check_images()
                         else:
-                            self.accept()
-                            self.set_box(PAGES['now'], POSITIONS['commercial'], REASONS['taboo'],
-                                         WAIT_ARG['attributes'],
-                                         WAIT_ARG['box'])
-                self.accept_final()
-                count += 1
-            else:
-                self.refresh()
+                            self.status = 'text'
+                            words_count = len(value.split())
+                            await asyncio.sleep(self.SPEED * words_count + 0.7 + random.random() * 5)
+                            if self.check_value(value, categories):
+                                self.accept()
+                            else:
+                                self.accept()
+                                self.set_box(PAGES['now'], POSITIONS['commercial'], REASONS['taboo'],
+                                             WAIT_ARG['attributes'],
+                                             WAIT_ARG['box'])
+                    self.accept_final()
+                    count += 1
+                else:
+                    self.refresh()
+        except Exception as e:
+            return str(e)
 
     def get_categories(self):
         categories = self.getter(OTHER_PATH['categories']).split('\n')[1]
@@ -146,8 +147,8 @@ class OzonManager(object):
                     return False
         return True
 
-    def check_images(self):
-        time.sleep(3)
+    async def check_images(self):
+        await asyncio.sleep(3)
         self.accept()
         # clear_img()
 
@@ -164,10 +165,10 @@ class OzonManager(object):
         while True:
             try:
                 # Bot.send_msg(self.message, 'Видео')
-                await asyncio.sleep.sleep(2)
+                await asyncio.sleep(2)
                 element = self.driver.find_element(By.XPATH, OTHER_PATH['video'])
                 self.driver.execute_script('arguments[0].play()', element)
-                await asyncio.sleep.sleep(2)
+                await asyncio.sleep(2)
                 duration = self.driver.execute_script('return arguments[0].duration', element)
                 await asyncio.sleep(duration+1)
                 self.accept()
@@ -177,10 +178,10 @@ class OzonManager(object):
             else:
                 break
 
-    def video_click(self):
+    async def video_click(self):
         actions = ActionChains(self.driver)
         actions.move_by_offset(100, 100).perform()
-        time.sleep(5)
+        await asyncio.sleep(5)
         actions.click().perform()
 
     def is_final(self):
