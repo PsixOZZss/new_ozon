@@ -72,26 +72,30 @@ class OzonManager(object):
                 elif self.is_in_stock():
                     categories = self.get_categories()
                     while not self.is_final():
-                        await asyncio.sleep(0.1)
-                        key, value, descriptions = self.get_info()
-                        if 'видео' in key:
-                            self.status = 'video'
-                            await self.play_video()
-                        elif 'изображ' in key:
-                            self.status = 'image'
-                            self.download_images()
-                            await self.check_images()
-                        else:
-                            self.status = 'text'
-                            words_count = len(value.split())
-                            await asyncio.sleep(self.SPEED * words_count + 0.7 + random.random() * 5)
-                            if self.check_value(value, categories):
-                                self.accept()
+                        try:
+                            self.driver.find_element(By.XPATH, "//*[contains(text(), 'Пролистайте rich')]")
+                            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                        except NoSuchElementException:
+                            await asyncio.sleep(0.1)
+                            key, value, descriptions = self.get_info()
+                            if 'видео' in key:
+                                self.status = 'video'
+                                await self.play_video()
+                            elif 'изображ' in key:
+                                self.status = 'image'
+                                self.download_images()
+                                await self.check_images()
                             else:
-                                self.accept()
-                                self.set_box(PAGES['now'], POSITIONS['commercial'], REASONS['taboo'],
-                                             WAIT_ARG['attributes'],
-                                             WAIT_ARG['box'])
+                                self.status = 'text'
+                                words_count = len(value.split())
+                                await asyncio.sleep(self.SPEED * words_count + 0.7 + random.random() * 5)
+                                if self.check_value(value, categories):
+                                    self.accept()
+                                else:
+                                    self.accept()
+                                    self.set_box(PAGES['now'], POSITIONS['commercial'], REASONS['taboo'],
+                                                 WAIT_ARG['attributes'],
+                                                 WAIT_ARG['box'])
                     self.accept_final()
                     count += 1
                 else:
