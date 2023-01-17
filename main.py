@@ -74,7 +74,8 @@ class OzonManager(object):
                     while not self.is_final():
                         try:
                             self.driver.find_element(By.XPATH, "//*[contains(text(), 'Пролистайте rich')]")
-                            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                            self.driver.execute_script("document.getElementsByClassName('rich_wScan')[0].scrollTo(0, document.getElementsByClassName('rich_wScan')[0].scrollHeight);")
+                            self.accept()
                         except NoSuchElementException:
                             await asyncio.sleep(0.1)
                             key, value, descriptions = self.get_info()
