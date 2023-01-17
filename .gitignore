@@ -6,3 +6,4 @@ images
 *.pyc
 screens/test.png
 venv
+output
